@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Duke's Obsession: Contract</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Serif+SC:wght@400;700&family=Great+Vibes&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0f0b0a;
+            --panel: rgba(25, 20, 18, 0.95);
+            --gold: #d4af37;
+            --gold-light: #f9e5a1;
+            --gold-dim: #8c7035;
+            --red: #8a1c1c;
+            --text: #e3dccb;
+            --card-front: #f0e6d2;
+            --card-back: #2d241e;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text);
+            font-family: 'Noto Serif SC', serif;
+            margin: 0; height: 100vh; height: 100dvh;
+            display: flex; flex-direction: column; overflow: hidden;
+            background-image: url('https://www.transparenttextures.com/patterns/dark-leather.png');
+            position: relative;
+        }
+
+        /* === 全局特效 === */
+        #particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .particle { position: absolute; background: var(--gold); border-radius: 50%; opacity: 0.3; animation: floatUp linear infinite; }
+        @keyframes floatUp { 0% { transform: translateY(100vh); opacity: 0; } 50% { opacity: 0.5; } 100% { transform: translateY(-10vh); opacity: 0; } }
+
+        .click-ripple {
+            position: fixed; pointer-events: none; width: 30px; height: 30px;
+            border: 2px solid var(--gold); border-radius: 50%;
+            animation: ripple 0.6s ease-out forwards; z-index: 9999;
+        }
+        @keyframes ripple { 0% { transform: scale(0.5); opacity: 1; border-width: 4px; } 100% { transform: scale(2.5); opacity: 0; border-width: 0; } }
+
+        .heart-float {
+            position: fixed; pointer-events: none; color: var(--red); font-size: 1.5rem;
+            animation: floatHeart 1s ease-out forwards; z-index: 9999; text-shadow: 0 0 5px black;
+        }
+        @keyframes floatHeart { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
+
+        /* === 1. 手机端完美适配开机：契约邀请函 === */
+        #intro-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background-image: radial-gradient(circle at center, #1a1510 0%, #000 100%);
+            padding: 20px;
+            transition: opacity 1s ease;
+        }
+        
+        /* 契约纸卡片 */
+        .intro-card {
+            width: 100%; max-width: 360px; /* 限制最大宽度，适配手机 */
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--gold-dim);
+            padding: 40px 20px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border-radius: 4px;
+        }
+        
+        /* 装饰角标 */
+        .corner { position: absolute; width: 20px; height: 20px; border: 2px solid var(--gold); }
+        .tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+        .bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+        .br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+        .intro-pre { font-family: 'Cinzel', serif; color: #666; font-size: 0.8rem; margin-bottom: 15px; letter-spacing: 2px; }
+        .intro-title {
+            font-family: 'Cinzel', serif; font-size: 2rem; color: var(--gold);
+            line-height: 1.2; margin-bottom: 20px; text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+        .intro-text { font-size: 0.85rem; color: #999; margin-bottom: 40px; line-height: 1.6; padding: 0 10px; }
+        
+        .sign-area {
+            border-bottom: 1px solid #444; width: 80%; margin: 0 auto 30px;
+            height: 40px; display: flex; justify-content: center; align-items: flex-end;
+            position: relative;
+        }
+        .signature {
+            font-family: 'Great Vibes', cursive; font-size: 2rem; color: var(--gold);
+            opacity: 0; transform: rotate(-5deg); transition: opacity 0.5s;
+        }
+        .signature.signed { opacity: 1; }
+
+        .enter-btn {
+            background: var(--gold); color: #000; border: none;
+            padding: 12px 40px; font-family: 'Cinzel', serif; font-weight: bold; font-size: 1rem;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+            border-radius: 2px; transition: transform 0.1s;
+        }
+        .enter-btn:active { transform: scale(0.95); }
+
+        /* === 2. 顶部区域 === */
+        .header-area {
+            flex: 0 0 90px; padding: 0 15px; display: flex; align-items: center;
+            background: linear-gradient(to bottom, rgba(0,0,0,1), transparent);
+            z-index: 10; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .avatar-box {
+            width: 70px; height: 70px; border-radius: 50%;
+            border: 2px solid var(--gold); background: #111;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 36px; margin-right: 15px; flex-shrink: 0;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+            transition: transform 0.1s; cursor: pointer;
+        }
+        .avatar-box:active { transform: scale(0.9); }
+        
+        .dialogue-box {
+            flex: 1; background: rgba(255,255,255,0.05); border: 1px solid #444;
+            border-radius: 8px; padding: 10px; font-size: 0.85rem; color: #ccc;
+            position: relative; line-height: 1.4;
+        }
+        .dialogue-box strong { color: var(--gold); font-family: 'Cinzel', serif; margin-right: 5px; }
+
+        /* === 3. 资源条 === */
+        .stats-bar {
+            display: flex; justify-content: space-between; padding: 5px 20px;
+            font-family: 'Cinzel', serif; font-size: 0.85rem; color: #666;
+            background: rgba(0,0,0,0.4);
+        }
+        .val { color: var(--gold-light); font-weight: bold; margin-left: 5px; }
+        #fever { color: var(--red); font-weight: bold; opacity: 0; transition: opacity 0.3s; text-shadow: 0 0 10px var(--red); }
+
+        /* === 4. 内容区 === */
+        .content-area { flex: 1; position: relative; overflow: hidden; z-index: 5; }
+        .panel {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; overflow-y: auto; padding: 15px;
+            scrollbar-width: none;
+        }
+        .panel.active { display: flex; }
+
+        /* --- 游戏网格 --- */
+        .game-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+            width: 100%; max-width: 380px; margin: 10px auto; aspect-ratio: 5/6;
+        }
+        .card { perspective: 1000px; position: relative; cursor: pointer; }
+        .card-inner {
+            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+            transition: transform 0.4s; border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+        }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card.matched { opacity: 0; pointer-events: none; transition: opacity 0.5s; transform: scale(1.1); }
+
+        .front {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            background: var(--card-front); color: #111; font-size: 1.6rem;
+            transform: rotateY(180deg); border: 2px solid var(--gold); border-radius: 4px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: inset 0 0 15px rgba(197, 160, 91, 0.2);
+        }
+        .back {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            background: var(--card-back); border: 1px solid #444; border-radius: 4px;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .back::after { content: '⚜️'; color: rgba(255,255,255,0.1); font-size: 1rem; }
+
+        /* 道具栏 */
+        .tools-container {
+            display: flex; gap: 10px; max-width: 380px; width: 100%; margin: 15px auto 0;
+        }
+        .tool-item {
+            flex: 1; background: #222; border: 1px solid #444; color: #666;
+            height: 50px; display: flex; justify-content: center; align-items: center;
+            border-radius: 6px; font-size: 1.4rem; position: relative; transition: all 0.2s;
+        }
+        .tool-item.active { border-color: var(--gold); color: var(--gold); background: #2a221b; cursor: pointer; }
+        .tool-item:active { transform: scale(0.95); }
+        .tool-count {
+            position: absolute; bottom: -5px; right: -5px; background: var(--gold); color: #000;
+            font-size: 0.7rem; padding: 2px 6px; border-radius: 10px; font-weight: bold;
+        }
+        
+        .skill-btn {
+            flex: 2; background: linear-gradient(135deg, #3e332a, #1a1510);
+            border: 1px solid var(--gold); color: var(--gold);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            font-family: 'Cinzel', serif; font-size: 0.9rem; border-radius: 6px;
+            position: relative; overflow: hidden; cursor: pointer;
+        }
+        .skill-mask { position: absolute; top: 0; left: 0; width: 0; height: 100%; background: rgba(0,0,0,0.7); transition: width 0.1s linear; }
+
+        /* --- 商店 --- */
+        .section-header {
+            text-align: center; font-family: 'Cinzel', serif; color: var(--gold-dim);
+            font-size: 0.8rem; margin: 15px 0 10px; border-bottom: 1px solid #333; padding-bottom: 5px;
+        }
+        .shop-grid { display: grid; gap: 8px; padding-bottom: 20px; }
+        .shop-card {
+            background: rgba(255,255,255,0.03); border: 1px solid #333; padding: 12px;
+            border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .shop-card.can-buy { border-color: rgba(197, 160, 91, 0.4); box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+        .item-icon { font-size: 1.2rem; margin-right: 10px; width: 30px; text-align: center; }
+        .item-details h4 { margin: 0; color: var(--text); font-size: 0.95rem; }
+        .item-details p { margin: 3px 0 0; color: #777; font-size: 0.75rem; }
+        .buy-button {
+            background: transparent; border: 1px solid #555; color: #777;
+            padding: 6px 15px; border-radius: 4px; font-size: 0.8rem; min-width: 70px;
+        }
+        .buy-button.can { border-color: var(--gold); color: var(--gold); cursor: pointer; }
+        .buy-button.owned { border-color: transparent; color: var(--red); pointer-events: none; }
+
+        /* --- 成就 --- */
+        .ach-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-bottom: 20px; }
+        .ach-box {
+            aspect-ratio: 1; background: #151515; border: 1px solid #333; border-radius: 4px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            opacity: 0.5; transition: all 0.3s; position: relative;
+        }
+        .ach-box.unlocked { opacity: 1; border-color: var(--gold); background: radial-gradient(circle, #2a221b, #000); }
+        .ach-icon { font-size: 1.4rem; filter: grayscale(1); margin-bottom: 3px; }
+        .ach-box.unlocked .ach-icon { filter: grayscale(0); transform: scale(1.1); }
+        .ach-tip {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+            background: #000; border: 1px solid var(--gold); padding: 5px; width: 120px; text-align: center;
+            font-size: 0.7rem; z-index: 100; display: none; pointer-events: none;
+        }
+        .ach-box:active .ach-tip { display: block; }
+
+        /* === 5. 底部导航 === */
+        .nav-bar {
+            flex: 0 0 60px; background: #080605; border-top: 1px solid var(--gold-dim);
+            display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8);
+        }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #555; transition: all 0.3s; }
+        .nav-btn.active { color: var(--gold); background: rgba(197, 160, 91, 0.05); }
+        .nav-icon { font-size: 1.4rem; margin-bottom: 2px; }
+        .nav-label { font-size: 0.7rem; letter-spacing: 1px; }
+        
+        /* 弹窗 */
+        .popup {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: rgba(10,10,10,0.95); border: 1px solid var(--gold);
+            padding: 15px 20px; border-radius: 6px; display: flex; align-items: center; gap: 15px;
+            z-index: 9999; transition: top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 30px rgba(0,0,0,0.8); width: 80%; max-width: 300px;
+        }
+        .popup.show { top: 30px; }
+        
+        /* 浮动文字 */
+        .float-text {
+            position: absolute; color: var(--gold); font-weight: bold; pointer-events: none; z-index: 1000;
+            animation: floatUp 0.8s forwards; font-size: 1.2rem; text-shadow: 1px 1px 0 #000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="particles"></div>
+
+    <!-- 1. 手机端适配开机：契约邀请函 -->
+    <div id="intro-screen">
+        <div class="intro-card">
+            <div class="corner tl"></div><div class="corner tr"></div>
+            <div class="corner bl"></div><div class="corner br"></div>
+            
+            <div class="intro-pre">CONTRACT</div>
+            <div class="intro-title">THE DUKE'S<br>OBSESSION</div>
+            <div class="intro-text">
+                "I await your arrival in the shadows. <br>Sign here to begin our ritual."
+            </div>
+            
+            <div class="sign-area">
+                <span class="signature" id="signature">{{user}}</span>
+            </div>
+            
+            <button class="enter-btn" id="signBtn" onclick="signContract()">签署契约 (SIGN)</button>
+        </div>
+    </div>
+
+    <!-- 弹窗 -->
+    <div class="popup" id="achPopup">
+        <div style="font-size:2rem">🏆</div>
+        <div>
+            <div style="color:var(--gold); font-family:'Cinzel',serif; font-size:0.9rem">ACHIEVEMENT</div>
+            <div style="color:#888; font-size:0.8rem" id="popText">Unlocked</div>
+        </div>
+    </div>
+
+    <!-- 2. 顶部 -->
+    <div class="header-area">
+        <div class="avatar-box" onclick="pokeAlaric(event)">
+            <div id="avatar">🎭</div>
+        </div>
+        <div class="dialogue-box" id="dialogue">
+            <strong>Alaric:</strong> "契约已成，你逃不掉了。"
+        </div>
+    </div>
+
+    <div class="stats-bar">
+        <span>DAY <span class="val" id="dayVal">1</span></span>
+        <span>GOLD <span class="val" id="goldVal">0</span></span>
+        <span id="fever">FEVER!</span>
+    </div>
+
+    <!-- 3. 内容 -->
+    <div class="content-area">
+        
+        <!-- 游戏Tab -->
+        <div class="panel active" id="tab-game">
+            <div class="game-grid" id="grid"></div>
+            
+            <div class="tools-container">
+                <div class="tool-item" id="btn-eye" onclick="useItem('eye')">
+                    🧐 <div class="tool-count" id="cnt-eye">0</div>
+                </div>
+                <div class="tool-item" id="btn-wine" onclick="useItem('wine')">
+                    🍷 <div class="tool-count" id="cnt-wine">0</div>
+                </div>
+                <div class="skill-btn" onclick="useSkill()">
+                    <div class="skill-mask" id="skillMask"></div>
+                    <span style="position:relative; z-index:2">🔔 呼叫阿咩</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 商店Tab -->
+        <div class="panel" id="tab-shop">
+            <div class="section-header">CONSUMABLES (消耗品)</div>
+            <div class="shop-grid" id="shopConsumables"></div>
+            
+            <div class="section-header">ARTIFACTS (珍藏品)</div>
+            <div class="shop-grid" id="shopArtifacts"></div>
+        </div>
+
+        <!-- 成就Tab -->
+        <div class="panel" id="tab-ach">
+            <div class="section-header">MEMORIES (20)</div>
+            <div style="text-align:center; color:#555; font-size:0.7rem; margin-bottom:10px;">(点击图标查看条件)</div>
+            <div class="ach-container" id="achList"></div>
+        </div>
+    </div>
+
+    <!-- 4. 底部 -->
+    <div class="nav-bar">
+        <div class="nav-btn active" onclick="switchTab('game', this)">
+            <div class="nav-icon">❖</div><div class="nav-label">仪式</div>
+        </div>
+        <div class="nav-btn" onclick="switchTab('shop', this)">
+            <div class="nav-icon">✦</div><div class="nav-label">商店</div>
+        </div>
+        <div class="nav-btn" onclick="switchTab('ach', this)">
+            <div class="nav-icon">🕮</div><div class="nav-label">成就</div>
+        </div>
+    </div>
+
+    <script>
+        // === 数据配置 ===
+        const ICONS = ['🎭', '🌷', '✉️', '🗡️', '🍷', '🗝️', '🕯️', '✒️', '🩸', '💍', '🔥', '🌑', '👁️', '🕸️', '🐍', '👑'];
+        
+        const SHOP = {
+            cons: [
+                { id: 'eye', name: "单片眼镜", price: 40, desc: "透视 1.5 秒", icon: "🧐" },
+                { id: 'wine', name: "陈酿红酒", price: 80, desc: "开启 Fever", icon: "🍷" }
+            ],
+            arts: [
+                { id: 'ink', name: "薰衣草墨水", price: 150, desc: "金币收益 +10%" },
+                { id: 'glove', name: "丝绒手套", price: 300, desc: "Combo时间 +1秒" },
+                { id: 'key', name: "书房钥匙", price: 600, desc: "解锁新对话" },
+                { id: 'mirror', name: "破碎镜子", price: 1000, desc: "阿莱里克更主动" },
+                { id: 'dagger', name: "黑曜石匕首", price: 1500, desc: "点击阿咩掉金币" },
+                { id: 'choker', name: "宝石项圈", price: 2500, desc: "每关奖励 +100G" },
+                { id: 'mask', name: "舞会面具", price: 4000, desc: "Fever倍率 x2" },
+                { id: 'contract', name: "灵魂契约", price: 10000, desc: "达成: 永恒占有" }
+            ]
+        };
+
+        const ACHS = [
+            { id: 'a1', name: "初入", desc: "Day 1", req: s => s.day >= 1, icon: "❖" },
+            { id: 'a2', name: "相识", desc: "Day 3", req: s => s.day >= 3, icon: "✉️" },
+            { id: 'a3', name: "渐进", desc: "Day 7", req: s => s.day >= 7, icon: "🕯️" },
+            { id: 'a4', name: "沉沦", desc: "Day 15", req: s => s.day >= 15, icon: "🌑" },
+            { id: 'a5', name: "永恒", desc: "Day 30", req: s => s.day >= 30, icon: "♾️" },
+            { id: 'a6', name: "起步", desc: "100 Gold", req: s => s.goldTotal >= 100, icon: "💰" },
+            { id: 'a7', name: "小富", desc: "1000 Gold", req: s => s.goldTotal >= 1000, icon: "💎" },
+            { id: 'a8', name: "巨贾", desc: "5000 Gold", req: s => s.goldTotal >= 5000, icon: "🏰" },
+            { id: 'a9', name: "首购", desc: "购买1件", req: s => s.inventory.length >= 1, icon: "🛒" },
+            { id: 'a10', name: "收藏", desc: "购买4件", req: s => s.inventory.length >= 4, icon: "📦" },
+            { id: 'a11', name: "满贯", desc: "清空商店", req: s => s.inventory.length >= 8, icon: "👑" },
+            { id: 'a12', name: "依赖", desc: "技能5次", req: s => s.stats.skill >= 5, icon: "🔔" },
+            { id: 'a13', name: "废人", desc: "技能20次", req: s => s.stats.skill >= 20, icon: "🛌" },
+            { id: 'a14', name: "策略", desc: "道具10次", req: s => s.stats.item >= 10, icon: "🧐" },
+            { id: 'a15', name: "酒鬼", desc: "红酒5次", req: s => s.stats.wine >= 5, icon: "🍷" },
+            { id: 'a16', name: "好奇", desc: "翻牌200次", req: s => s.stats.flips >= 200, icon: "🃏" },
+            { id: 'a17', name: "狂热", desc: "20 Combo", req: s => s.stats.comboMax >= 20, icon: "🔥" },
+            { id: 'a18', name: "神速", desc: "30 Combo", req: s => s.stats.comboMax >= 30, icon: "⚡" },
+            { id: 'a19', name: "秘密", desc: "戳阿咩50次", req: s => s.stats.pokes >= 50, icon: "❤️" },
+            { id: 'a20', name: "契约", desc: "持有契约", req: s => s.inventory.includes('contract'), icon: "💍" }
+        ];
+
+        // === 状态 ===
+        let state = {
+            day: 1, gold: 0, goldTotal: 0,
+            inventory: [], items: { eye: 0, wine: 0 },
+            stats: { skill: 0, item: 0, wine: 0, pokes: 0, flips: 0, comboMax: 0 },
+            achieved: [],
+            // 运行时
+            cards: [], first: null, second: null, lock: false, left: 0,
+            combo: 0, timer: null, goldMult: 1, skillReady: true
+        };
+
+        // === 初始化 ===
+        function initParticles() {
+            const c = document.getElementById('particles');
+            for(let i=0; i<20; i++) {
+                let p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random()*100+'%';
+                p.style.width = p.style.height = (Math.random()*4+2)+'px';
+                p.style.animationDuration = (Math.random()*10+5)+'s';
+                p.style.animationDelay = (Math.random()*5)+'s';
+                c.appendChild(p);
+            }
+        }
+
+        // 新版开机逻辑
+        function signContract() {
+            const sign = document.getElementById('signature');
+            const btn = document.getElementById('signBtn');
+            
+            // 签字动画
+            sign.classList.add('signed');
+            btn.style.opacity = 0;
+            
+            if(navigator.vibrate) navigator.vibrate(20);
+            
+            setTimeout(() => {
+                document.getElementById('intro-screen').style.opacity = 0;
+                setTimeout(() => {
+                    document.getElementById('intro-screen').style.display = 'none';
+                    initParticles();
+                    init();
+                }, 1000);
+            }, 1000);
+            
+            // 全局点击特效
+            document.addEventListener('click', (e) => {
+                let r = document.createElement('div');
+                r.className = 'click-ripple';
+                r.style.left = (e.clientX - 15) + 'px';
+                r.style.top = (e.clientY - 15) + 'px';
+                document.body.appendChild(r);
+                setTimeout(()=>r.remove(), 600);
+            });
+        }
+
+        function init() {
+            startLevel();
+            updateUI();
+            renderShop();
+            renderAch();
+        }
+
+        // === 游戏逻辑 ===
+        function startLevel() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            state.first = null; state.second = null; state.lock = false;
+            
+            let deck = [];
+            for(let i=0; i<15; i++) { deck.push(ICONS[i%ICONS.length], ICONS[i%ICONS.length]); }
+            deck.sort(() => Math.random() - 0.5);
+            state.left = deck.length;
+
+            deck.forEach((icon, i) => {
+                let c = document.createElement('div');
+                c.className = 'card';
+                c.dataset.icon = icon;
+                c.innerHTML = `<div class="card-inner"><div class="front">${icon}</div><div class="back"></div></div>`;
+                c.onclick = () => flip(c);
+                grid.appendChild(c);
+                setTimeout(()=>c.style.opacity=1, i*20);
+            });
+            setDialog(`Day ${state.day}: 牌局开始了。`);
+        }
+
+        function flip(c) {
+            if(state.lock || c.classList.contains('flipped') || c.classList.contains('matched')) return;
+            c.classList.add('flipped');
+            state.stats.flips++;
+            if(navigator.vibrate) navigator.vibrate(5);
+
+            if(!state.first) state.first = c;
+            else { state.second = c; check(); }
+            checkAch();
+        }
+
+        function check() {
+            state.lock = true;
+            if(state.first.dataset.icon === state.second.dataset.icon) {
+                setTimeout(() => { success(); state.lock=false; state.first=null; state.second=null; }, 400);
+            } else {
+                setTimeout(() => {
+                    state.first.classList.remove('flipped'); state.second.classList.remove('flipped');
+                    state.lock=false; state.first=null; state.second=null;
+                    state.combo=0; document.getElementById('fever').style.opacity=0;
+                }, 800);
+            }
+        }
+
+        function success() {
+            state.first.classList.add('matched'); state.second.classList.add('matched');
+            state.left -= 2; state.combo++;
+            if(state.combo > state.stats.comboMax) state.stats.comboMax = state.combo;
+
+            let base = 10;
+            if(state.inventory.includes('mask')) base = 20; // 面具加成
+            let gain = Math.floor(base * state.combo * state.goldMult);
+            state.gold += gain; state.goldTotal += gain;
+
+            showFloat(state.second, `+${gain}`);
+            
+            if(state.combo >= 2) {
+                let f = document.getElementById('fever'); f.style.opacity=1; f.innerText = `${state.combo} COMBO!`;
+            }
+            
+            let time = state.inventory.includes('glove') ? 4500 : 3000;
+            clearTimeout(state.timer); state.timer = setTimeout(() => { state.combo=0; document.getElementById('fever').style.opacity=0; }, time);
+
+            if(state.left <= 0) {
+                setTimeout(() => {
+                    state.day++;
+                    if(state.inventory.includes('choker')) state.gold += 100;
+                    startLevel(); checkAch();
+                }, 1000);
+            }
+            updateUI(); checkAch();
+        }
+
+        // === 技能与道具 ===
+        function useSkill() {
+            if(!state.skillReady || state.left<=0) return;
+            let cards = Array.from(document.querySelectorAll('.card:not(.matched):not(.flipped)'));
+            if(cards.length<2) return;
+            
+            let t = cards[0].dataset.icon;
+            let pair = cards.filter(c=>c.dataset.icon===t);
+            if(pair.length>=2) {
+                state.stats.skill++;
+                state.skillReady = false;
+                let m = document.getElementById('skillMask');
+                m.style.width='100%'; m.style.transition='width 20s linear';
+                setTimeout(()=>m.style.width='0%',10);
+                setTimeout(()=>state.skillReady=true, 20000);
+                
+                pair[0].classList.add('flipped'); pair[1].classList.add('flipped');
+                setTimeout(()=>{ state.first=pair[0]; state.second=pair[1]; success(); state.first=null; state.second=null; }, 400);
+                setDialog("我来帮你。");
+                checkAch();
+            }
+        }
+
+        function useItem(type) {
+            if(state.items[type]>0) {
+                state.items[type]--; state.stats.item++;
+                if(type==='eye') {
+                    document.querySelectorAll('.card:not(.matched)').forEach(c=>{
+                        c.classList.add('flipped');
+                        setTimeout(()=>{ if(!c.classList.contains('matched') && c!==state.first) c.classList.remove('flipped'); }, 1500);
+                    });
+                } else {
+                    state.combo=10; state.stats.wine++;
+                    document.getElementById('fever').style.opacity=1; 
+                    document.getElementById('fever').innerText="MAX FEVER!";
+                }
+                updateUI(); checkAch();
+            }
+        }
+
+        // === 商店 ===
+        function renderShop() {
+            const lc = document.getElementById('shopConsumables'); lc.innerHTML='';
+            SHOP.cons.forEach(i => {
+                let d = document.createElement('div');
+                d.className = `shop-card ${state.gold>=i.price?'can-buy':''}`;
+                d.innerHTML = `
+                    <div style="display:flex;align-items:center"><div class="item-icon">${i.icon}</div>
+                    <div class="item-details"><h4>${i.name}</h4><p>${i.desc}</p></div></div>
+                    <button class="buy-button ${state.gold>=i.price?'can':''}" onclick="buyItem('${i.id}',${i.price})">${i.price}</button>
+                `;
+                lc.appendChild(d);
+            });
+            const la = document.getElementById('shopArtifacts'); la.innerHTML='';
+            SHOP.arts.forEach(i => {
+                let owned = state.inventory.includes(i.id);
+                let d = document.createElement('div');
+                d.className = `shop-card ${!owned && state.gold>=i.price?'can-buy':''}`;
+                d.innerHTML = `
+                    <div style="display:flex;align-items:center"><div class="item-icon">⚜️</div>
+                    <div class="item-details"><h4>${i.name}</h4><p>${i.desc}</p></div></div>
+                    <button class="buy-button ${owned?'owned':(state.gold>=i.price?'can':'')}" onclick="buyArt('${i.id}',${i.price})">
+                        ${owned?'已拥有':i.price}
+                    </button>
+                `;
+                la.appendChild(d);
+            });
+        }
+        
+        function buyItem(id, p) { if(state.gold>=p){ state.gold-=p; state.items[id]++; updateUI(); checkAch(); } }
+        function buyArt(id, p) { 
+            if(state.gold>=p){ 
+                state.gold-=p; state.inventory.push(id); 
+                if(id==='ink') state.goldMult+=0.1;
+                if(id==='contract') { document.getElementById('avatar').innerText="💍"; setDialog("契约已定。"); }
+                updateUI(); renderShop(); checkAch();
+            } 
+        }
+
+        // === 成就 (20个) ===
+        function checkAch() {
+            ACHS.forEach(a => {
+                if(!state.achieved.includes(a.id) && a.req(state)) {
+                    state.achieved.push(a.id);
+                    showPopup(a.name);
+                    renderAch();
+                }
+            });
+        }
+        function showPopup(name) {
+            const p = document.getElementById('achPopup');
+            document.getElementById('popText').innerText = name;
+            p.classList.add('show');
+            if(navigator.vibrate) navigator.vibrate([50,50,50]);
+            setTimeout(()=>p.classList.remove('show'), 3000);
+        }
+        function renderAch() {
+            const l = document.getElementById('achList'); l.innerHTML='';
+            ACHS.forEach(a => {
+                let u = state.achieved.includes(a.id);
+                let d = document.createElement('div');
+                d.className = `ach-box ${u?'unlocked':''}`;
+                d.innerHTML = `<div class="ach-icon">${a.icon}</div><div class="ach-tip">${a.desc}</div>`;
+                l.appendChild(d);
+            });
+        }
+
+        // === 交互 ===
+        function pokeAlaric(e) {
+            state.stats.pokes++;
+            if(state.inventory.includes('dagger')) {
+                state.gold+=5; showFloat(e.target, "+5 G");
+            }
+            let h = document.createElement('div'); h.className='heart-float'; h.innerText='❤️';
+            h.style.left=e.clientX+'px'; h.style.top=e.clientY+'px'; document.body.appendChild(h);
+            setTimeout(()=>h.remove(),1000);
+            setDialog(["再近一点。", "我在这。", "别分心。", "我想你。"][Math.floor(Math.random()*4)]);
+            checkAch();
+        }
+
+        function setDialog(t) { document.getElementById('dialogue').innerHTML=`<strong>Alaric:</strong> "${t}"`; }
+        function showFloat(el,t) {
+            let r=el.getBoundingClientRect(); let d=document.createElement('div');
+            d.innerText=t; d.style.left=(r.left+20)+'px'; d.style.top=(r.top)+'px';
+            d.className='float-text'; document.body.appendChild(d); setTimeout(()=>d.remove(),800);
+        }
+        function updateUI() {
+            document.getElementById('dayVal').innerText=state.day;
+            document.getElementById('goldVal').innerText=state.gold;
+            document.getElementById('cnt-eye').innerText=state.items.eye;
+            document.getElementById('cnt-wine').innerText=state.items.wine;
+            document.getElementById('btn-eye').className = state.items.eye>0?'tool-item active':'tool-item';
+            document.getElementById('btn-wine').className = state.items.wine>0?'tool-item active':'tool-item';
+            
+            // Auto switch visual update for red dots if any
+            renderShop();
+        }
+        function switchTab(id, btn) {
+            document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+    </script>
+</body>
+</html>
